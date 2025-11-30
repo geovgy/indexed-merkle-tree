@@ -1,7 +1,8 @@
 [package]
-name = "indexed_merkle"
+name = "indexed_merkle_tree"
 type = "lib"
-authors = ["numtel"]
+authors = ["geovgy"]
 license = "MIT"
 
 [dependencies]
+poseidon = { tag = "v0.1.1", git = "https://github.com/noir-lang/poseidon" }

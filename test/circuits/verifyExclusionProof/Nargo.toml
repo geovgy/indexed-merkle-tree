@@ -1,7 +1,0 @@
-[package]
-name = "verifyExclusionProof"
-type = "bin"
-authors = [""]
-
-[dependencies]
-indexed_merkle = { path = "../../.." }
