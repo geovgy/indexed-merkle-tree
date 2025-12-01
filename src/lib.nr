@@ -36,7 +36,7 @@ pub impl IndexedMerkleTree {
                 idx >>= 1;
             }
         };
-        assert(hash == root);
+        assert(hash == root, "indexed merkle tree mismatch root");
     }
 
     pub fn verify_exclusion_proof<let MAX_DEPTH: u32>(
@@ -51,9 +51,9 @@ pub impl IndexedMerkleTree {
         excludedKey: u64
     ) {
         self.verify_proof(leafIdx, leafKey, leafNextIdx, leafNextKey, leafValue, root, siblings);
-        assert(excludedKey > leafKey);
+        assert(excludedKey > leafKey, "indexed merkle tree excluded key must be greater than leaf key");
         if leafNextIdx > 0 {
-            assert(excludedKey < leafNextKey);
+            assert(excludedKey < leafNextKey, "indexed merkle tree excluded key must be less than leaf next key");
         }
     }
 
@@ -93,11 +93,11 @@ pub impl IndexedMerkleTree {
                 siblingsAfterNewLen = i;
             }
         }
-        assert(siblingsAfterOgLen == siblingsAfterNewLen);
+        assert(siblingsAfterOgLen == siblingsAfterNewLen, "indexed merkle tree siblings after og length must be equal to siblings after new length");
         //    And the "before" proof's length must be either the same (no height change)
         //    or exactly one less (height grew by 1, e.g. first insertion or crossing a power-of-two).
         assert((siblingsBeforeLen == siblingsAfterNewLen)
-            | (siblingsBeforeLen + 1 == siblingsAfterNewLen));
+            | (siblingsBeforeLen + 1 == siblingsAfterNewLen), "indexed merkle tree siblings before length must be either equal to siblings after new length or one less");
 
         // 3) Find the first level at which the predecessor's proof changed
         let mut diffIdx = MAX_DEPTH + 1;
@@ -109,11 +109,11 @@ pub impl IndexedMerkleTree {
             }
         }
         // We must see exactly one "first" change
-        assert(diffIdx != MAX_DEPTH + 1);
+        assert(diffIdx != MAX_DEPTH + 1, "indexed merkle tree diff index must not be equal to max depth plus one");
         // And ensure nothing *before* that level changed
         for i in 0..MAX_DEPTH {
             if i < diffIdx {
-                assert(siblingsBefore[i] == siblingsAfterOg[i]);
+                assert(siblingsBefore[i] == siblingsAfterOg[i], "indexed merkle tree siblings before must be equal to siblings after og");
             }
         }
         // 4) Now recompute the "sub-root" of the new leaf up to diffIdx, and
@@ -134,7 +134,7 @@ pub impl IndexedMerkleTree {
                 idx >>= 1;
             }
         };
-        assert(hash == siblingsAfterOg[diffIdx]);
+        assert(hash == siblingsAfterOg[diffIdx], "indexed merkle tree hash must be equal to siblings after og");
     }
 }
 
