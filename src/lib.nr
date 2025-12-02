@@ -51,9 +51,9 @@ pub impl IndexedMerkleTree {
         excludedKey: Field
     ) {
         self.verify_proof(leafIdx, leafKey, leafNextIdx, leafNextKey, leafValue, root, siblings);
-        assert(excludedKey as u128 > leafKey as u128, "indexed merkle tree excluded key must be greater than leaf key");
+        std::field::bn254::assert_gt(excludedKey, leafKey);
         if leafNextIdx > 0 {
-            assert(excludedKey as u128 < leafNextKey as u128, "indexed merkle tree excluded key must be less than leaf next key");
+            std::field::bn254::assert_lt(excludedKey, leafNextKey);
         }
     }
 
