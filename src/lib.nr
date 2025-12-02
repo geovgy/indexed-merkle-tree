@@ -13,15 +13,15 @@ pub impl IndexedMerkleTree {
     pub fn verify_proof<let MAX_DEPTH: u32>(
         self,
         leafIdx: u32,
-        leafKey: u64,
+        leafKey: Field,
         leafNextIdx: u32,
-        leafNextKey: u64,
+        leafNextKey: Field,
         leafValue: Field,
         root: Field,
         siblings: [Field; MAX_DEPTH]
     ) {
         let mut hash = (self.leaf_hasher)([
-            leafKey as Field, leafNextIdx as Field, leafNextKey as Field, leafValue
+            leafKey, leafNextIdx as Field, leafNextKey, leafValue
         ]);
         let mut idx = leafIdx;
         for i in 0..MAX_DEPTH {
@@ -42,30 +42,30 @@ pub impl IndexedMerkleTree {
     pub fn verify_exclusion_proof<let MAX_DEPTH: u32>(
         self,
         leafIdx: u32,
-        leafKey: u64,
+        leafKey: Field,
         leafNextIdx: u32,
-        leafNextKey: u64,
+        leafNextKey: Field,
         leafValue: Field,
         root: Field,
         siblings: [Field; MAX_DEPTH],
-        excludedKey: u64
+        excludedKey: Field
     ) {
         self.verify_proof(leafIdx, leafKey, leafNextIdx, leafNextKey, leafValue, root, siblings);
-        assert(excludedKey > leafKey, "indexed merkle tree excluded key must be greater than leaf key");
+        assert(excludedKey as u128 > leafKey as u128, "indexed merkle tree excluded key must be greater than leaf key");
         if leafNextIdx > 0 {
-            assert(excludedKey < leafNextKey, "indexed merkle tree excluded key must be less than leaf next key");
+            assert(excludedKey as u128 < leafNextKey as u128, "indexed merkle tree excluded key must be less than leaf next key");
         }
     }
 
     pub fn verify_insertion_proof<let MAX_DEPTH: u32>(
         self,
         ogLeafIdx: u32,
-        ogLeafKey: u64,
+        ogLeafKey: Field,
         ogLeafNextIdx: u32,
-        ogLeafNextKey: u64,
+        ogLeafNextKey: Field,
         ogLeafValue: Field,
         newLeafIdx: u32,
-        newLeafKey: u64,
+        newLeafKey: Field,
         newLeafValue: Field,
         rootBefore: Field,
         rootAfter: Field,

@@ -1,4 +1,5 @@
 /// <reference types="bun-types" />
+import { describe, it } from 'bun:test';
 import { ok } from 'node:assert';
 
 import { IndexedMerkleTree } from '../index';
