@@ -1,66 +1,61 @@
-## Foundry
+## IndexedMerkleTree.sol Library
 
-**Foundry is a blazing fast, portable and modular toolkit for Ethereum application development written in Rust.**
+This is a Solidity implementation of the Indexed Merkle Tree using Foundry as the development framework.
 
-Foundry consists of:
+### Overview
 
--   **Forge**: Ethereum testing framework (like Truffle, Hardhat and DappTools).
--   **Cast**: Swiss army knife for interacting with EVM smart contracts, sending transactions and getting chain data.
--   **Anvil**: Local Ethereum node, akin to Ganache, Hardhat Network.
--   **Chisel**: Fast, utilitarian, and verbose solidity REPL.
+The `IndexedMerkleTree` library (`src/IndexedMerkleTree.sol`) provides methods to create and manage indexed Merkle trees onchain that can be used alongside the Noir and TypeScript implementations.
 
-## Documentation
+*NOTE: The current implementation uses the Poseidon hash. Using a different hash function requires overriding the functions.*
 
-https://book.getfoundry.sh/
+**Key Components:**
+- `Node` struct: Stores a key, value, and pointers to the next node in the sequence
+- `IndexedMerkleTree` struct: Manages the tree root, node mappings, and leaf cache
+- `IndexedMerkleTreeLib` library: Provides initialization, insertion, and root calculation functions
 
-## Usage
-
-### Build
+### Installation
 
 ```shell
-$ forge build
+forge install geovgy/indexed-merkle-tree
 ```
 
-### Test
+### Implementation
 
-```shell
-$ forge test
+Here's a simple example of how to use the IndexedMerkleTree library:
+
+```solidity
+pragma solidity ^0.8.0;
+
+import { IndexedMerkleTree, IndexedMerkleTreeLib } from "indexed-merkle-tree/contracts/IndexedMerkleTree.sol";
+
+contract MyContract {
+    using IndexedMerkleTreeLib for IndexedMerkleTree;
+    
+    IndexedMerkleTree private tree;
+    
+    constructor() {
+        // MUST initialize the tree before use
+        tree.init();
+    }
+    
+    function addEntry(uint256 key, uint256 value) public {
+        tree.insert(key, value);
+    }
+    
+    function getRoot() public view returns (uint256) {
+        return tree.root;
+    }
+}
 ```
 
-### Format
+This contract initializes an indexed merkle tree and provides functions to insert new key-value pairs and retrieve the current merkle root.
+
+### Setup and Building
+
+Run the following commands to compile and test:
 
 ```shell
-$ forge fmt
-```
-
-### Gas Snapshots
-
-```shell
-$ forge snapshot
-```
-
-### Anvil
-
-```shell
-$ anvil
-```
-
-### Deploy
-
-```shell
-$ forge script script/Counter.s.sol:CounterScript --rpc-url <your_rpc_url> --private-key <your_private_key>
-```
-
-### Cast
-
-```shell
-$ cast <subcommand>
-```
-
-### Help
-
-```shell
-$ forge --help
-$ anvil --help
-$ cast --help
+cd contracts
+forge build
+forge test
 ```
