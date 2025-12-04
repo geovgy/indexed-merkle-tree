@@ -21,6 +21,19 @@ struct IndexedMerkleTree {
 library IndexedMerkleTreeLib {
     uint256 constant ZERO_LEAF = 2351654555892372227640888372176282444150254868378439619268573230312091195718;
 
+    function init(IndexedMerkleTree storage self) public {
+        self.nodes[0] = Node({
+            key: 0,
+            nextIdx: 0,
+            nextKey: 0,
+            value: 0
+        });
+        self.leaves[0] = ZERO_LEAF;
+        self.numOfLeaves = 1;
+        
+        self.root = ZERO_LEAF;
+    }
+
     function insert(IndexedMerkleTree storage self, uint256 key, uint256 value) public {
         uint256 prevKey = 0;
         uint256 prevIdx = 0;
@@ -35,26 +48,31 @@ library IndexedMerkleTreeLib {
         uint256 nextIdx = self.nodes[prevIdx].nextIdx;
         uint256 nextKey = self.nodes[prevIdx].nextKey;
         
-        uint256 newLeaf = PoseidonT5.hash([key, nextIdx, nextKey, value]);
-
-        self.leaves[self.numOfLeaves] = newLeaf;
-        
-        self.nodes[self.numOfLeaves].key = key;
-        self.nodes[self.numOfLeaves].nextIdx = nextIdx;
-        self.nodes[self.numOfLeaves].nextKey = nextKey;
-        self.nodes[self.numOfLeaves].value = value;
+        self.nodes[self.numOfLeaves] = Node({
+            key: key,
+            nextIdx: nextIdx,
+            nextKey: nextKey,
+            value: value
+        });
         
         self.nodes[prevIdx].nextKey = key;
         self.nodes[prevIdx].nextIdx = self.numOfLeaves;
+
+        Node memory prevNode = self.nodes[prevIdx];
+
+        uint256 prevLeaf = PoseidonT5.hash([prevNode.key, prevNode.nextIdx, prevNode.nextKey, prevNode.value]);
+        uint256 newLeaf = PoseidonT5.hash([key, nextIdx, nextKey, value]);
+        
+        self.leaves[prevIdx] = prevLeaf;
+        self.leaves[self.numOfLeaves] = newLeaf;
+        
         self.numOfLeaves++;
 
-        self.root = self.root == ZERO_LEAF ? newLeaf : calculateRoot(self);
+        self.root = calculateRoot(self);
     }
 
     function calculateRoot(IndexedMerkleTree storage self) public view returns (uint256) {
-        uint256 hash = ZERO_LEAF;
-
-        uint256 size = 1 << (2 ** self.numOfLeaves);
+        uint256 size = 1 << (self.numOfLeaves / 2 + (self.numOfLeaves % 2 == 0 ? 0 : 1));
 
         // Step 2: Create a padded array with existing leaves and ZERO_LEAF padding
         uint256[] memory currentLevel = new uint256[](size);
@@ -75,6 +93,6 @@ library IndexedMerkleTreeLib {
             currentLevel = nextLevel;
         }
 
-        return currentLevel[0];
+        return currentLevel[0]; // return the root
     }
 }
