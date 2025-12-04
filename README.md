@@ -1,12 +1,10 @@
 # Indexed Merkle Tree
 
-An implementation of [Indexed Merkle Tree](https://docs.aztec.network/aztec/concepts/advanced/storage/indexed_merkle_tree) in TypeScript and Noir. This is a modified fork of the [indexed-merkle-noir](https://github.com/numtel/indexed-merkle-noir) repo from numtel.
-
-* Keys can be max 64-bit uints
-* Values can be any field element
+An implementation of [Indexed Merkle Tree](https://docs.aztec.network/aztec/concepts/advanced/storage/indexed_merkle_tree) in TypeScript, Noir and Solidity. This is a modified fork of the [indexed-merkle-noir](https://github.com/numtel/indexed-merkle-noir) repo from numtel.
 
 ### Notable changes from indexed-merkle-noir
 
+* Keys can be any field element
 * No pre-determined max tree depth
 * No pre-determined hash function
 * Convert JavaScript implementation into TypeScript
@@ -19,10 +17,14 @@ $ cd indexed-merkle-tree
 $ bun install
 
 # Test typescript implementation
-$ bun test
+$ bun test ./test
 
 # Test noir implementation
 $ nargo test
+
+# Test solidity implementation
+$ cd contracts
+$ forge test
 ```
 
 ## TypeScript Usage
@@ -90,6 +92,10 @@ The Noir library includes an `IndexedMerkleTree` struct with implementation func
     1. All three individual proofs must be valid
     2. Sibling arrays for both leaves are same length
     3. The "sub-roots" of both changed leaves match
+
+## Solidity Usage
+
+Learn more about the solidity implementation in the [contracts section](/contracts/README.md).
 
 ## License
 
