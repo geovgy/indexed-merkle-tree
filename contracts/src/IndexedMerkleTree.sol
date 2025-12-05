@@ -21,6 +21,8 @@ struct IndexedMerkleTree {
 library IndexedMerkleTreeLib {
     uint256 constant ZERO_LEAF = 2351654555892372227640888372176282444150254868378439619268573230312091195718;
 
+    uint256 constant private SNARK_SCALAR_FIELD = 21888242871839275222246405745257275088548364400416034343698204186575808495617;
+
     function init(IndexedMerkleTree storage self) public {
         self.nodes[0] = Node({
             key: 0,
@@ -35,6 +37,10 @@ library IndexedMerkleTreeLib {
     }
 
     function insert(IndexedMerkleTree storage self, uint256 key, uint256 value) public {
+        require(self.root != 0, "IndexedMerkleTree: tree must be initialized");
+        require(key <= SNARK_SCALAR_FIELD, "IndexedMerkleTree: key cannot be greater than SNARK_SCALAR_FIELD");
+        require(value <= SNARK_SCALAR_FIELD, "IndexedMerkleTree: value cannot be greater than SNARK_SCALAR_FIELD");
+
         uint256 prevKey = 0;
         uint256 prevIdx = 0;
         for (uint256 i = 1; i < self.numOfLeaves; i++) {
