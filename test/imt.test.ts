@@ -9,6 +9,62 @@ describe('IndexedMerkleTree', () => {
   it('should generate and verify exclusion proof on empty tree', () => {
     const tree = new IndexedMerkleTree(poseidonHash);
 
+    tree.insert(1n, 1n)
+    tree.insert(2n, 2n)
+    tree.insert(10n, 20n)
+    tree.insert(6n, 10n)
+
+    let proof = tree.generateProof(1n);
+    console.log(proof.leaf)
+
+    proof = tree.generateProof(2n);
+    console.log(proof.leaf)
+
+    proof = tree.generateProof(10n);
+    console.log(proof.leaf)
+
+    proof = tree.generateProof(6n);
+    console.log(proof.leaf)
+
+    console.log("Root:", proof.root)
+
+    tree.insert(3n, 3n)
+    tree.insert(4n, 4n)
+    tree.insert(5n, 5n)
+    tree.insert(7n, 7n)
+
+    console.log("Updated leaves:")
+    proof = tree.generateProof(1n);
+    console.log({...proof.leaf, idx: proof.leafIdx})
+
+    proof = tree.generateProof(2n);
+    console.log({...proof.leaf, idx: proof.leafIdx})
+
+    proof = tree.generateProof(10n);
+    console.log({...proof.leaf, idx: proof.leafIdx})
+
+    proof = tree.generateProof(6n);
+    console.log({...proof.leaf, idx: proof.leafIdx})
+
+    console.log("New leaves:")
+    proof = tree.generateProof(3n);
+    console.log(proof.leaf)
+
+    proof = tree.generateProof(4n);
+    console.log(proof.leaf)
+
+    proof = tree.generateProof(5n);
+    console.log(proof.leaf)
+
+    proof = tree.generateProof(7n);
+    console.log(proof.leaf)
+
+    console.log("Root:", proof.root)
+  });
+
+  it('should generate and verify exclusion proof on empty tree', () => {
+    const tree = new IndexedMerkleTree(poseidonHash);
+
     const exProof = tree.generateExclusionProof(13n);
     
     ok(exProof && tree.verifyProof(exProof));
