@@ -3,7 +3,7 @@ pragma solidity ^0.8.0;
 
 import { PoseidonT3 } from "poseidon-solidity/PoseidonT3.sol";
 import { PoseidonT5 } from "poseidon-solidity/PoseidonT5.sol";
-import { console } from "forge-std/console.sol";
+import { UD60x18, ud } from "prb-math/UD60x18.sol";
 
 struct Node {
     uint256 key;
@@ -76,17 +76,12 @@ library IndexedMerkleTreeLib {
                     require(indices[i] < indices[i + 1], "IndexedMerkleTree: indices must be in ascending order");
                 }
                 Node memory currentNode = self.nodes[indices[i]];
-                console.log("currentNode.key", currentNode.key);
-                console.log("updatedNodes[i].key", updatedNodes[i].key);
-                console.log("currentNode.value", currentNode.value);
-                console.log("updatedNodes[i].value", updatedNodes[i].value);
                 require(updatedNodes[i].key == currentNode.key && updatedNodes[i].value == currentNode.value, "IndexedMerkleTree: cannot update node with different key or value");
                 uint256 updatedLeaf = PoseidonT5.hash([updatedNodes[i].key, updatedNodes[i].nextIdx, updatedNodes[i].nextKey, updatedNodes[i].value]);
                 self.nodes[indices[i]] = updatedNodes[i];
                 self.leaves[indices[i]] = updatedLeaf;
 
                 if (currentNode.key < prevKey) {
-                    console.log("Setting existing");
                     prevKey = currentNode.key;
                     prevIdx = indices[i];
                 }
@@ -94,7 +89,6 @@ library IndexedMerkleTreeLib {
                 if (updatedNodes[i].key >= lastKey && lastKey != 0) {
                     lastKey = updatedNodes[i].nextKey;
                     lastIdx = updatedNodes[i].nextIdx;
-                    console.log("Setting updated last key and idx", lastKey, lastIdx);
                 }
             }
 
@@ -108,7 +102,6 @@ library IndexedMerkleTreeLib {
                 self.leaves[newIdx] = newLeaf;
 
                 if (newNodes[i].key < prevKey) {
-                    console.log("Setting new");
                     prevKey = newNodes[i].key;
                     prevIdx = newIdx;
                 }
@@ -116,7 +109,6 @@ library IndexedMerkleTreeLib {
                 if (newNodes[i].key >= lastKey && lastKey != 0) {
                     lastKey = newNodes[i].nextKey;
                     lastIdx = newNodes[i].nextIdx;
-                    console.log("Setting new last key and idx", lastKey, lastIdx);
                 }
             }
         }
@@ -130,17 +122,7 @@ library IndexedMerkleTreeLib {
         for (uint256 i = 1; i < batchSize; i++) {
             node = self.nodes[idx];
 
-            console.log("i", i);
-            console.log("batchSize", batchSize);
-            console.log("prevKey", prevKey);
-            console.log("idx", idx);
-            console.log("node.nextIdx", node.nextIdx);
-            console.log("node.key", node.key);
-            console.log("node.nextKey", node.nextKey);
-            console.log("lastKey", lastKey);
-            console.log("lastIdx", lastIdx);
             if (i == batchSize - 1) {
-                console.log("QUE???");
                 require(node.key > prevKey && node.nextKey == lastKey && node.nextIdx == lastIdx, "IndexedMerkleTree: next key and idx must equal last key and idx");
                 if (lastKey == 0) {
                     require(node.nextKey == 0 && node.nextIdx == 0, "IndexedMerkleTree: largest key must have next key and idx set to 0");
@@ -199,7 +181,10 @@ library IndexedMerkleTreeLib {
     }
 
     function calculateRoot(IndexedMerkleTree storage self) public view returns (uint256) {
-        uint256 size = 1 << (self.numOfLeaves / 2 + (self.numOfLeaves % 2 == 0 ? 0 : 1));
+        UD60x18 numberOfLeavesUD60x18 = ud(self.numOfLeaves * 1e18);
+        uint256 ceilLog2 = numberOfLeavesUD60x18.log2().ceil().unwrap();
+
+        uint256 size = 1 << (ceilLog2 / 1e18);
 
         // Step 2: Create a padded array with existing leaves and ZERO_LEAF padding
         uint256[] memory currentLevel = new uint256[](size);

@@ -4,3 +4,8 @@
 [submodule "contracts/lib/poseidon-solidity"]
 	path = contracts/lib/poseidon-solidity
 	url = https://github.com/chancehudson/poseidon-solidity
+[submodule "contracts/lib/prb-math"]
+	path = contracts/lib/prb-math
+	url = https://github.com/PaulRBerg/prb-math
+[submodule "lib/prb-math"]
+	branch = release-v4
