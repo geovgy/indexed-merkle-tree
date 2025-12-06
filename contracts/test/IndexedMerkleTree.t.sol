@@ -47,7 +47,7 @@ contract IndexedMerkleTreeTest is Test {
         );
     }
 
-    function test_batchInsert() public {
+    function test_insertBatch() public {
         tree.init(depth);
 
         uint256[] memory indices = new uint256[](1);
@@ -60,7 +60,7 @@ contract IndexedMerkleTreeTest is Test {
         newNodes[2] = Node({key: 10, nextIdx: 0, nextKey: 0, value: 20});
         newNodes[3] = Node({key: 6, nextIdx: 3, nextKey: 10, value: 10});
 
-        tree.batchInsert(
+        tree.insertBatch(
             indices,
             updatedNodes,
             newNodes
@@ -81,7 +81,7 @@ contract IndexedMerkleTreeTest is Test {
         newNodes2[2] = Node({key: 5, nextIdx: 4, nextKey: 6, value: 5});
         newNodes2[3] = Node({key: 7, nextIdx: 3, nextKey: 10, value: 7});
 
-        tree.batchInsert(
+        tree.insertBatch(
             indices2,
             updatedNodes2,
             newNodes2

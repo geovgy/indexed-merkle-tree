@@ -50,7 +50,7 @@ library IndexedMerkleTreeLib {
      * @param updatedNodes The updated nodes
      * @param newNodes The new nodes to insert
      */
-    function batchInsert(
+    function insertBatch(
         IndexedMerkleTree storage self, 
         uint256[] memory indices,
         Node[] memory updatedNodes,
