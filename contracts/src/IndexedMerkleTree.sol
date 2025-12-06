@@ -96,8 +96,7 @@ library IndexedMerkleTreeLib {
                 require(newNodes[i].nextIdx < newNumberOfLeaves, "IndexedMerkleTree: next idx cannot be greater than new number of leaves");
                 uint256 newIdx = self.numOfLeaves + i;
                 uint256 newLeaf = PoseidonT5.hash([newNodes[i].key, newNodes[i].nextIdx, newNodes[i].nextKey, newNodes[i].value]);
-                // TODO: check nextKey + nextIdx is correct in prevNodes (both updated and new nodes)
-                // Maybe a for loop that breaks when it finds the previous node?
+
                 self.nodes[newIdx] = newNodes[i];
                 self.leaves[newIdx] = newLeaf;
 
