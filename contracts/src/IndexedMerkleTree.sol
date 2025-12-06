@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.19;
 
 import { PoseidonT3 } from "poseidon-solidity/PoseidonT3.sol";
 import { PoseidonT5 } from "poseidon-solidity/PoseidonT5.sol";
