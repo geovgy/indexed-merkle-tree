@@ -28,6 +28,19 @@ export interface IMTInsertionProof {
   siblingsAfterNew: bigint[];
 }
 
+export interface IMTBatchInsertionProof {
+  rootBefore: bigint;
+  rootAfter: bigint;
+  emptySubtreeSiblings: bigint[];
+  emptySubtreeRoot: bigint;
+  insertionIdx: number;
+  ogLeaves: IMTNode[];
+  newLeaves: IMTNode[];
+  siblingsBefore: bigint[][];
+  siblingsAfterOg: bigint[][];
+  siblingsAfterNew: bigint[][];
+}
+
 export class IndexedMerkleTree {
   nodes: IMTNode[] = [];
   hasher: (args: bigint[]) => bigint;
@@ -85,6 +98,129 @@ export class IndexedMerkleTree {
       siblingsAfterOg: updatedPrevProof.siblings,
       siblingsAfterNew: newItemProof.siblings,
     };
+  }
+
+  insertBatch(keyValues: { key: bigint, value: bigint }[]): IMTBatchInsertionProof {
+    if (keyValues.length === 0) throw new Error('no_key_values');
+    const { nodes } = this;
+
+    const insertionIdx = nodes.length;
+
+    // Get empty subtree root
+
+    // Get depth of subtree that fits all the key values
+    const subtreeDepth = 1 << Math.ceil(Math.log2(keyValues.length));
+    if (subtreeDepth > 254) throw new Error('depth_too_large');
+
+    // Create empty subtree with depth
+    const ZERO_LEAF = this.hasher([0n, 0n, 0n, 0n]);
+    let level = Array(subtreeDepth).fill(ZERO_LEAF);
+
+    while (level.length > 1) {
+      const nextLevel: bigint[] = [];
+      for (let i = 0; i < level.length; i += 2) {
+        nextLevel.push(this.hasher([level[i], level[i + 1]]));
+      }
+      level = nextLevel; // ascend one level
+    }
+    const emptySubtreeRoot = level[0];
+
+    const leaves = nodes.map(x => this.hasher([x.key, BigInt(x.nextIdx), x.nextKey, x.value]));
+
+    // Pad to the next power-of-two with an explicit zero-leaf
+    const size = 1 << Math.ceil(Math.log2(leaves.length + keyValues.length));
+    const idx = leaves.length >> subtreeDepth;
+    while (leaves.length < size) leaves.push(ZERO_LEAF);
+
+    const siblings: bigint[] = [];
+    let idxAtLevel = idx;
+    level = leaves;
+
+    while (level.length > 1) {
+      // flip the low bit instead of calculating left or right side of pair
+      const sibIdx = idxAtLevel ^ 1;
+      if (sibIdx < level.length && level.length <= subtreeDepth) siblings.push(level[sibIdx]);
+
+      const nextLevel: bigint[] = [];
+      for (let i = 0; i < level.length; i += 2) {
+        nextLevel.push(this.hasher([level[i], level[i + 1]]));
+      }
+
+      idxAtLevel >>= 1; // parent index
+      level = nextLevel; // ascend one level
+    }
+
+    const prevRoot = level[0];
+
+    let prevNodes: (IMTNode & {
+      idx: number;
+    })[] = [];
+    const initNumberOfLeaves = nodes.length;
+
+    let exProofs: IMTProof[] = [];
+    let newItemProofs: IMTProof[] = [];
+    let updatedPrevProofs: IMTProof[] = [];
+
+    for (const { key, value } of keyValues) {
+      if (key < 1n) throw new Error('invalid_key');
+      if (value < 0n) throw new Error('invalid_value');
+      if (nodes.find(x => x.key === key)) throw new Error('duplicate_key');
+  
+      // Find previous key
+      let prevKey = 0n;
+      let prevIdx = 0;
+      for (let i = 1; i < nodes.length; i++) {
+        if (nodes[i].key < key && nodes[i].key > prevKey) {
+          prevKey = nodes[i].key;
+          prevIdx = i;
+          // Doesn't get any closer
+          if (nodes[i].key + 1n === key) break;
+        }
+      }
+  
+      exProofs.push(this.generateProof(prevKey));
+  
+      if (prevIdx < initNumberOfLeaves) {
+        prevNodes.push({ ...nodes[prevIdx], idx: prevIdx });
+      }
+
+      nodes.push({
+        key,
+        nextIdx: nodes[prevIdx].nextIdx,
+        nextKey: nodes[prevIdx].nextKey,
+        value,
+      });
+      nodes[prevIdx].nextKey = key;
+      nodes[prevIdx].nextIdx = nodes.length - 1;
+  
+      newItemProofs.push(this.generateProof(key));
+      updatedPrevProofs.push(this.generateProof(prevKey));
+    }
+
+    return {
+      rootBefore: prevRoot,
+      rootAfter: newItemProofs[newItemProofs.length - 1].root,
+      emptySubtreeSiblings: siblings,
+      emptySubtreeRoot,
+      insertionIdx,
+      ogLeaves: exProofs.map(x => ({
+        idx: x.leafIdx,
+        key: x.leaf.key,
+        nextIdx: x.leaf.nextIdx,
+        nextKey: x.leaf.nextKey,
+        value: x.leaf.value,
+      })),
+      newLeaves: newItemProofs.map(x => ({
+        idx: x.leafIdx,
+        key: x.leaf.key,
+        nextIdx: x.leaf.nextIdx,
+        nextKey: x.leaf.nextKey,
+        value: x.leaf.value,
+      })),
+      siblingsBefore: exProofs.map(x => x.siblings),
+      siblingsAfterOg: updatedPrevProofs.map(x => x.siblings),
+      siblingsAfterNew: newItemProofs.map(x => x.siblings),
+    }
   }
 
   generateProof(key: bigint): IMTProof {
