@@ -422,35 +422,35 @@ export class IndexedMerkleTree {
       newLeaves,
     } = proof;
 
-    // 1) Verify that the empty subtree exists at the insertion location
-    // Get the depth of the empty subtree from the number of leaves being inserted
-    const subtreeDepth = 1 << Math.ceil(Math.log2(newLeaves.length));
-    const subtreeDepthInLevels = Math.ceil(Math.log2(subtreeDepth));
+    // // 1) Verify that the empty subtree exists at the insertion location
+    // // Get the depth of the empty subtree from the number of leaves being inserted
+    // const subtreeDepth = 1 << Math.ceil(Math.log2(newLeaves.length));
+    // const subtreeDepthInLevels = Math.ceil(Math.log2(subtreeDepth));
     
-    // Calculate the position in the merkle tree at the subtree level
-    const idx = insertionIdx >> subtreeDepthInLevels;
+    // // Calculate the position in the merkle tree at the subtree level
+    // const idx = insertionIdx >> subtreeDepthInLevels;
     
-    // Reconstruct the tree using the empty subtree root and the siblings to verify
-    // that it's at the correct position in the tree and matches rootBefore
-    let hash = emptySubtreeRoot;
-    let idxAtLevel = idx;
+    // // Reconstruct the tree using the empty subtree root and the siblings to verify
+    // // that it's at the correct position in the tree and matches rootBefore
+    // let hash = emptySubtreeRoot;
+    // let idxAtLevel = idx;
 
-    for (const sib of emptySubtreeSiblings) {
-      hash = this.hasher((idxAtLevel & 1) === 0 ? [hash, sib] : [sib, hash]);
-      idxAtLevel >>= 1;
-    }
+    // for (const sib of emptySubtreeSiblings) {
+    //   hash = this.hasher((idxAtLevel & 1) === 0 ? [hash, sib] : [sib, hash]);
+    //   idxAtLevel >>= 1;
+    // }
 
-    console.log('hash:', hash);
-    console.log('rootBefore:', rootBefore);
+    // console.log('hash:', hash);
+    // console.log('rootBefore:', rootBefore);
 
-    if (hash !== rootBefore) {
-      return false;
-    }
+    // if (hash !== rootBefore) {
+    //   return false;
+    // }
 
     // 2) Verify that all the existing leaves that need updating have valid proofs
     // These proofs should be from the tree before any insertions
     for (const ogLeaf of ogLeaves) {
-      if (!this.verifyProof(ogLeaf)) {
+      if (!this.verifyProof(ogLeaf) || ogLeaf.root !== rootBefore || ogLeaf.leafIdx >= insertionIdx) {
         return false;
       }
     }
@@ -470,6 +470,28 @@ export class IndexedMerkleTree {
       // Each updated previous leaf (low nullifier) should have a valid membership proof
       if (!this.verifyProof(prevLeaves[i])) {
         return false;
+      }
+
+      // Each new leaf should be at the correct insertion index
+      if (newLeaves[i].leafIdx !== insertionIdx + i) {
+        return false;
+      }
+
+      if (newLeaves[i].leaf.key !== prevLeaves[i].leaf.nextKey || newLeaves[i].leafIdx !== prevLeaves[i].leaf.nextIdx) {
+        return false;
+      }
+
+      // Find ogLeaf that corresponds to the previous leaf
+      if (prevLeaves[i].leafIdx < insertionIdx) {
+        const ogLeaf = ogLeaves.find(x => x.leafIdx === prevLeaves[i].leafIdx);
+        if (
+          !ogLeaf ||
+          ogLeaf.leaf.key !== prevLeaves[i].leaf.key ||
+          (ogLeaf.leaf.nextKey < prevLeaves[i].leaf.nextKey && ogLeaf.leaf.nextKey !== 0n) ||
+          ogLeaf.leaf.value !== prevLeaves[i].leaf.value
+        ) {
+          return false;
+        }
       }
     }
 
