@@ -187,6 +187,16 @@ pub impl IndexedMerkleTree {
                         assert(nextKeyGreater | (ogLeaves[j].leafNextKey == 0), "indexed merkle tree og leaves must be at the correct next key");
                     }
                 }
+            } else {
+                let mut found = false;
+                for j in 0..BATCH_SIZE {
+                    if (newLeaves[j].leafIdx == prevLeaves[i].leafIdx) {
+                        found = true;
+                        assert(newLeaves[j].leafKey == prevLeaves[i].leafKey, "indexed merkle tree new leaves must be at the correct key");
+                        assert(newLeaves[j].leafValue == prevLeaves[i].leafValue, "indexed merkle tree new leaves must be at the correct value");
+                    }
+                }
+                assert(found, "indexed merkle tree new leaves must be found");
             }
         }
 
