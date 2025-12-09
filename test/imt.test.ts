@@ -1,11 +1,65 @@
 /// <reference types="bun-types" />
-import { describe, it } from 'bun:test';
+import { describe, expect, it } from 'bun:test';
 import { ok } from 'node:assert';
 
 import { IndexedMerkleTree } from '../index';
 import { poseidonHash } from './helpers';
 
 describe('IndexedMerkleTree', () => {
+  it('should generate and verify batch insertion proof', () => {
+    const tree = new IndexedMerkleTree(poseidonHash);
+    const tree2 = new IndexedMerkleTree(poseidonHash);
+    
+    // batch insertion
+    const proof = tree.insertBatch([{ key: 1n, value: 1n }, { key: 2n, value: 2n }, { key: 3n, value: 3n }]);
+
+    // individual insertions
+    const proof2_1 = tree2.insert(1n, 1n);
+    const proof2_2 = tree2.insert(2n, 2n);
+    const proof2_3 = tree2.insert(3n, 3n);
+
+    const proof2 = tree2.generateProof(3n);
+
+    expect(proof.rootBefore, 'root before should be the same').toEqual(proof2_1.rootBefore);
+    expect(proof.rootAfter, 'root after should be the same').toEqual(proof2.root);
+    expect(proof.ogLeaves.length, 'og leaves should be empty').toEqual(1);
+    expect(proof2_1.ogLeafIdx, 'og leaf idx should be the same').toEqual(proof.prevLeaves[0].leafIdx);
+    expect(proof2_2.ogLeafIdx, 'og leaf idx should be the same').toEqual(proof.prevLeaves[1].leafIdx);
+    expect(proof2_3.ogLeafIdx, 'og leaf idx should be the same').toEqual(proof.prevLeaves[2].leafIdx);
+  });
+
+  it('should generate and verify batch insertion proof after 2nd batch insertion', () => {
+    const tree = new IndexedMerkleTree(poseidonHash);
+    const tree2 = new IndexedMerkleTree(poseidonHash);
+    
+    // batch insertion
+    tree.insertBatch([{ key: 1n, value: 1n }, { key: 2n, value: 2n }, { key: 3n, value: 3n }, { key: 6n, value: 6n }]);
+    const proof = tree.insertBatch([{ key: 4n, value: 4n }, { key: 5n, value: 5n }, { key: 7n, value: 7n }, { key: 8n, value: 8n }]);
+
+    // individual insertions
+    tree2.insert(1n, 1n);
+    tree2.insert(2n, 2n);
+    tree2.insert(3n, 3n);
+    tree2.insert(6n, 6n);
+
+    const proof2Pre = tree2.generateProof(6n);
+
+    const proof2_4 = tree2.insert(4n, 4n);
+    const proof2_5 = tree2.insert(5n, 5n);
+    const proof2_7 = tree2.insert(7n, 7n);
+    const proof2_8 = tree2.insert(8n, 8n);
+
+    const proof2 = tree2.generateProof(8n);
+
+    expect(proof.rootBefore, 'root before should be the same').toEqual(proof2Pre.root);
+    expect(proof.rootAfter, 'root after should be the same').toEqual(proof2.root);
+    expect(proof.ogLeaves.length, 'og leaves should be empty').toEqual(2);
+    expect(proof2_4.ogLeafIdx, 'og leaf idx should be the same').toEqual(proof.prevLeaves[0].leafIdx);
+    expect(proof2_5.ogLeafIdx, 'og leaf idx should be the same').toEqual(proof.prevLeaves[1].leafIdx);
+    expect(proof2_7.ogLeafIdx, 'og leaf idx should be the same').toEqual(proof.prevLeaves[2].leafIdx);
+    expect(proof2_8.ogLeafIdx, 'og leaf idx should be the same').toEqual(proof.prevLeaves[3].leafIdx);
+  });
+
   it('should generate and verify exclusion proof on empty tree', () => {
     const tree = new IndexedMerkleTree(poseidonHash);
 

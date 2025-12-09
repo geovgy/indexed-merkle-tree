@@ -31,17 +31,16 @@ export interface IMTInsertionProof {
 export interface IMTBatchInsertionProof {
   rootBefore: bigint;
   rootAfter: bigint;
-  emptySubtreeSiblings: bigint[];
-  emptySubtreeRoot: bigint;
   insertionIdx: number;
-  ogLeaves: IMTNode[];
-  newLeaves: IMTNode[];
-  siblingsBefore: bigint[][];
-  siblingsAfterOg: bigint[][];
-  siblingsAfterNew: bigint[][];
+  emptySubtreeRoot: bigint;
+  emptySubtreeSiblings: bigint[];
+  ogLeaves: IMTProof[]; // Proof of existing leaves to be updated before the batch insertion
+  prevLeaves: IMTProof[]; // Proof of updated leaves after each insertion (low nullifiers)
+  newLeaves: IMTProof[]; // Proof of new leaves after each insertion
 }
 
 export class IndexedMerkleTree {
+  root: bigint;
   nodes: IMTNode[] = [];
   hasher: (args: bigint[]) => bigint;
 
@@ -49,6 +48,7 @@ export class IndexedMerkleTree {
     // Always initialize with a zero item for exclusion proofs below the first item
     this.nodes = [{ key: 0n, nextIdx: 0, nextKey: 0n, value: 0n }];
     this.hasher = hasher;
+    this.root = this.hasher([0n, 0n, 0n, 0n]);
   }
 
   insert(key: bigint, value: bigint): IMTInsertionProof {
@@ -82,6 +82,8 @@ export class IndexedMerkleTree {
 
     const newItemProof = this.generateProof(key);
     const updatedPrevProof = this.generateProof(prevKey);
+
+    this.root = newItemProof.root;
 
     return {
       ogLeafIdx: exProof.leafIdx,
@@ -128,8 +130,9 @@ export class IndexedMerkleTree {
     const leaves = nodes.map(x => this.hasher([x.key, BigInt(x.nextIdx), x.nextKey, x.value]));
 
     // Pad to the next power-of-two with an explicit zero-leaf
-    const size = 1 << Math.ceil(Math.log2(leaves.length + keyValues.length));
-    const idx = leaves.length >> subtreeDepth;
+    const size = 1 << Math.ceil(Math.log2(leaves.length));
+    const subtreeDepthInLevels = Math.ceil(Math.log2(subtreeDepth));
+    const idx = leaves.length >> subtreeDepthInLevels;
     while (leaves.length < size) leaves.push(ZERO_LEAF);
 
     const siblings: bigint[] = [];
@@ -139,7 +142,7 @@ export class IndexedMerkleTree {
     while (level.length > 1) {
       // flip the low bit instead of calculating left or right side of pair
       const sibIdx = idxAtLevel ^ 1;
-      if (sibIdx < level.length && level.length <= subtreeDepth) siblings.push(level[sibIdx]);
+      if (sibIdx < level.length) siblings.push(level[sibIdx]);
 
       const nextLevel: bigint[] = [];
       for (let i = 0; i < level.length; i += 2) {
@@ -152,12 +155,41 @@ export class IndexedMerkleTree {
 
     const prevRoot = level[0];
 
-    let prevNodes: (IMTNode & {
-      idx: number;
-    })[] = [];
-    const initNumberOfLeaves = nodes.length;
+    const newNodes = [
+      ...nodes,
+      ...keyValues.map(x => ({
+        key: x.key,
+        nextIdx: nodes.length,
+        nextKey: 0n,
+        value: x.value,
+      }))
+    ];
 
-    let exProofs: IMTProof[] = [];
+    const ogLeaves: IMTProof[] = [];
+
+    // Get original nodes that will be updated before the batch insertion
+    for (const { key, value } of keyValues) {
+      if (key < 1n) throw new Error('invalid_key');
+      if (value < 0n) throw new Error('invalid_value');
+      if (nodes.find(x => x.key === key)) throw new Error('duplicate_key');
+  
+      // Find previous key
+      let prevKey = 0n;
+      let prevIdx = 0;
+      for (let i = 1; i < newNodes.length; i++) {
+        if (newNodes[i].key < key && newNodes[i].key > prevKey) {
+          prevKey = newNodes[i].key;
+          prevIdx = i;
+          // Doesn't get any closer
+          if (newNodes[i].key + 1n === key) break;
+        }
+      }
+
+      if (prevIdx < insertionIdx) {
+        ogLeaves.push(this.generateProof(prevKey));
+      }
+    }
+
     let newItemProofs: IMTProof[] = [];
     let updatedPrevProofs: IMTProof[] = [];
 
@@ -177,12 +209,6 @@ export class IndexedMerkleTree {
           if (nodes[i].key + 1n === key) break;
         }
       }
-  
-      exProofs.push(this.generateProof(prevKey));
-  
-      if (prevIdx < initNumberOfLeaves) {
-        prevNodes.push({ ...nodes[prevIdx], idx: prevIdx });
-      }
 
       nodes.push({
         key,
@@ -197,29 +223,19 @@ export class IndexedMerkleTree {
       updatedPrevProofs.push(this.generateProof(prevKey));
     }
 
+    // Update the root
+    const newRoot = newItemProofs[newItemProofs.length - 1].root;
+    this.root = newRoot;
+
     return {
       rootBefore: prevRoot,
-      rootAfter: newItemProofs[newItemProofs.length - 1].root,
+      rootAfter: newRoot,
       emptySubtreeSiblings: siblings,
       emptySubtreeRoot,
       insertionIdx,
-      ogLeaves: exProofs.map(x => ({
-        idx: x.leafIdx,
-        key: x.leaf.key,
-        nextIdx: x.leaf.nextIdx,
-        nextKey: x.leaf.nextKey,
-        value: x.leaf.value,
-      })),
-      newLeaves: newItemProofs.map(x => ({
-        idx: x.leafIdx,
-        key: x.leaf.key,
-        nextIdx: x.leaf.nextIdx,
-        nextKey: x.leaf.nextKey,
-        value: x.leaf.value,
-      })),
-      siblingsBefore: exProofs.map(x => x.siblings),
-      siblingsAfterOg: updatedPrevProofs.map(x => x.siblings),
-      siblingsAfterNew: newItemProofs.map(x => x.siblings),
+      ogLeaves,
+      prevLeaves: updatedPrevProofs,
+      newLeaves: newItemProofs,
     }
   }
 
