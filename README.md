@@ -69,6 +69,9 @@ const isValidInsert = tree.verifyInsertionProof(transitionProof);
   - `key`: bigint greater than 0
   - `value`: bigint greater than or equal to 0
   - Returns insertion proof data object
+- **insertBatch(keyValues)**: Inserts an array of new items that each have a `key` and `value`
+  - `keyValues`: `{key: bigint, value: bigint}[]`
+  - Returns a batch insertion proof data object
 - **generateProof(key)**: Generates a Merkle proof for the given key
   - Returns `{leafIdx, leaf, root, siblings}`
 - **generateExclusionProof(key)**: Generates a proof that a key doesn't exist in the tree
@@ -76,6 +79,8 @@ const isValidInsert = tree.verifyInsertionProof(transitionProof);
 - **verifyProof(proof)**: Verifies a Merkle proof
   - Returns `true` if valid, `false` otherwise
 - **verifyInsertionProof(insertionProof)**: Verifies an insertion proof
+  - Returns `true` if valid, `false` otherwise
+- **verifyBatchInsertionProof(batchInsertionProof)**: Verifies a batch insertion proof
   - Returns `true` if valid, `false` otherwise
 
 ## Noir Library Functions
@@ -92,6 +97,7 @@ The Noir library includes an `IndexedMerkleTree` struct with implementation func
     1. All three individual proofs must be valid
     2. Sibling arrays for both leaves are same length
     3. The "sub-roots" of both changed leaves match
+- **verify_batch_insertion_proof**: Verifies that the tree root state transition is valid for the given batch insertion.
 
 ## Solidity Usage
 
