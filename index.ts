@@ -32,8 +32,8 @@ export interface IMTBatchInsertionProof {
   rootBefore: bigint;
   rootAfter: bigint;
   insertionIdx: number;
-  emptySubtreeRoot: bigint;
-  emptySubtreeSiblings: bigint[];
+  // emptySubtreeRoot: bigint;
+  // emptySubtreeSiblings: bigint[];
   ogLeaves: IMTProof[]; // Proof of existing leaves to be updated before the batch insertion
   prevLeaves: IMTProof[]; // Proof of updated leaves after each insertion (low nullifiers)
   newLeaves: IMTProof[]; // Proof of new leaves after each insertion
@@ -230,8 +230,8 @@ export class IndexedMerkleTree {
     return {
       rootBefore: prevRoot,
       rootAfter: newRoot,
-      emptySubtreeSiblings: siblings,
-      emptySubtreeRoot,
+      // emptySubtreeSiblings: siblings,
+      // emptySubtreeRoot,
       insertionIdx,
       ogLeaves,
       prevLeaves: updatedPrevProofs,
@@ -415,8 +415,6 @@ export class IndexedMerkleTree {
       rootBefore,
       rootAfter,
       insertionIdx,
-      emptySubtreeRoot,
-      emptySubtreeSiblings,
       ogLeaves,
       prevLeaves,
       newLeaves,
