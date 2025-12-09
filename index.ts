@@ -409,4 +409,75 @@ export class IndexedMerkleTree {
     // That must be exactly the "new" sibling in the updated-prev proof
     return hash === siblingsAfterOg[diffIdx];
   }
+
+  verifyBatchInsertionProof(proof: IMTBatchInsertionProof): boolean {
+    const {
+      rootBefore,
+      rootAfter,
+      insertionIdx,
+      emptySubtreeRoot,
+      emptySubtreeSiblings,
+      ogLeaves,
+      prevLeaves,
+      newLeaves,
+    } = proof;
+
+    // 1) Verify that the empty subtree exists at the insertion location
+    // Get the depth of the empty subtree from the number of leaves being inserted
+    const subtreeDepth = 1 << Math.ceil(Math.log2(newLeaves.length));
+    const subtreeDepthInLevels = Math.ceil(Math.log2(subtreeDepth));
+    
+    // Calculate the position in the merkle tree at the subtree level
+    const idx = insertionIdx >> subtreeDepthInLevels;
+    
+    // Reconstruct the tree using the empty subtree root and the siblings to verify
+    // that it's at the correct position in the tree and matches rootBefore
+    let hash = emptySubtreeRoot;
+    let idxAtLevel = idx;
+
+    for (const sib of emptySubtreeSiblings) {
+      hash = this.hasher((idxAtLevel & 1) === 0 ? [hash, sib] : [sib, hash]);
+      idxAtLevel >>= 1;
+    }
+
+    console.log('hash:', hash);
+    console.log('rootBefore:', rootBefore);
+
+    if (hash !== rootBefore) {
+      return false;
+    }
+
+    // 2) Verify that all the existing leaves that need updating have valid proofs
+    // These proofs should be from the tree before any insertions
+    for (const ogLeaf of ogLeaves) {
+      if (!this.verifyProof(ogLeaf)) {
+        return false;
+      }
+    }
+
+    // 3) Verify that after each insertion, the low nullifier (previous leaf) 
+    // and new leaf have valid membership proofs
+    if (prevLeaves.length !== newLeaves.length) {
+      return false;
+    }
+
+    for (let i = 0; i < prevLeaves.length; i++) {
+      // Each new leaf should have a valid membership proof at its insertion index
+      if (!this.verifyProof(newLeaves[i])) {
+        return false;
+      }
+
+      // Each updated previous leaf (low nullifier) should have a valid membership proof
+      if (!this.verifyProof(prevLeaves[i])) {
+        return false;
+      }
+    }
+
+    // 4) Verify that the final root from the last insertion matches rootAfter
+    if (newLeaves.length > 0 && newLeaves[newLeaves.length - 1].root !== rootAfter) {
+      return false;
+    }
+
+    return true;
+  }
 }

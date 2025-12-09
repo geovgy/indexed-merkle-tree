@@ -26,6 +26,9 @@ describe('IndexedMerkleTree', () => {
     expect(proof2_1.ogLeafIdx, 'og leaf idx should be the same').toEqual(proof.prevLeaves[0].leafIdx);
     expect(proof2_2.ogLeafIdx, 'og leaf idx should be the same').toEqual(proof.prevLeaves[1].leafIdx);
     expect(proof2_3.ogLeafIdx, 'og leaf idx should be the same').toEqual(proof.prevLeaves[2].leafIdx);
+
+    // Verify the batch insertion proof
+    ok(tree.verifyBatchInsertionProof(proof), 'batch insertion proof should be valid');
   });
 
   it('should generate and verify batch insertion proof after 2nd batch insertion', () => {
@@ -58,6 +61,9 @@ describe('IndexedMerkleTree', () => {
     expect(proof2_5.ogLeafIdx, 'og leaf idx should be the same').toEqual(proof.prevLeaves[1].leafIdx);
     expect(proof2_7.ogLeafIdx, 'og leaf idx should be the same').toEqual(proof.prevLeaves[2].leafIdx);
     expect(proof2_8.ogLeafIdx, 'og leaf idx should be the same').toEqual(proof.prevLeaves[3].leafIdx);
+
+    // Verify the second batch insertion proof
+    ok(tree.verifyBatchInsertionProof(proof), 'second batch insertion proof should be valid');
   });
 
   it('should generate and verify exclusion proof on empty tree', () => {
