@@ -23,6 +23,10 @@ pub impl<let MAX_DEPTH: u32> IMTProof<MAX_DEPTH> {
     pub fn zero() -> Self {
         Self { leafIdx: 0, leafKey: 0, leafNextIdx: 0, leafNextKey: 0, leafValue: 0, root: 0, siblings: [0; MAX_DEPTH] }
     }
+
+    pub fn to_leaf_hash(self, hasher: fn ([Field; 4]) -> Field) -> Field {
+        hasher([self.leafKey, self.leafNextIdx as Field, self.leafNextKey, self.leafValue])
+    }
 }
 
 pub impl IndexedMerkleTree {
