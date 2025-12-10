@@ -183,7 +183,7 @@ pub impl IndexedMerkleTree {
             self.verify_proof(newLeaves[i].leafIdx, newLeaves[i].leafKey, newLeaves[i].leafNextIdx, newLeaves[i].leafNextKey, newLeaves[i].leafValue, newLeaves[i].root, newLeaves[i].siblings);
 
             if (prevLeaves[i].leafIdx < insertionIdx) {
-                for j in 0..ogLeavesLength {
+                for j in 0..BATCH_SIZE {
                     if (ogLeaves[j].leafIdx == prevLeaves[i].leafIdx) {
                         assert(ogLeaves[j].leafKey == prevLeaves[i].leafKey, "indexed merkle tree og leaves must be at the correct key");
                         assert(ogLeaves[j].leafValue == prevLeaves[i].leafValue, "indexed merkle tree og leaves must be at the correct value");
