@@ -157,7 +157,7 @@ pub impl IndexedMerkleTree {
         assert(hash == siblingsAfterOg[diffIdx], "indexed merkle tree hash must be equal to siblings after og");
     }
 
-    fn verify_batch_insertion_proof<let MAX_DEPTH: u32, let BATCH_SIZE: u32>(
+    pub fn verify_batch_insertion_proof<let MAX_DEPTH: u32, let BATCH_SIZE: u32>(
         self,
         rootBefore: Field,
         rootAfter: Field,
