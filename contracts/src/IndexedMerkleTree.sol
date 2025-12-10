@@ -46,92 +46,45 @@ library IndexedMerkleTreeLib {
      * @dev The indices, updatedNodes and newNodes must have the same length.
      * This function assumes implementation will verify the batch insertion with a proof or other constraints.
      * @param self The indexed merkle tree
-     * @param indices The indices of the nodes to update
-     * @param updatedNodes The updated nodes
+     * @param prevIdxs The indices of the previous nodes to new nodes to be inserted after
      * @param newNodes The new nodes to insert
      */
     function insertBatch(
         IndexedMerkleTree storage self, 
-        uint256[] memory indices,
-        Node[] memory updatedNodes,
+        uint256[] memory prevIdxs,
         Node[] memory newNodes
     ) public {
         require(self.root != 0, "IndexedMerkleTree: tree must be initialized");
-        require(updatedNodes.length == indices.length, "IndexedMerkleTree: updated nodes and indices must have the same length");
+        require(newNodes.length == prevIdxs.length, "IndexedMerkleTree: new nodes and prev indices must have the same length");
         require(newNodes.length % 2 == 0, "IndexedMerkleTree: new nodes must have an even number of elements");
         
         uint256 newNumberOfLeaves = self.numOfLeaves + newNodes.length;
         require(newNumberOfLeaves <= 2 ** self.depth, "IndexedMerkleTree: new number of leaves cannot be greater than 2 ** depth");
-
-        uint256 prevKey = updatedNodes[0].key;
-        uint256 prevIdx = indices[0];
-
-        uint256 lastKey = updatedNodes[0].nextKey;
-        uint256 lastIdx = updatedNodes[0].nextIdx;
         
-        for (uint256 i = 0; i < (newNodes.length > indices.length ? newNodes.length : indices.length); i++) {
-            if (i < indices.length) {
-                require(indices[i] < self.numOfLeaves, "IndexedMerkleTree: index out of bounds");
-                if (i < indices.length - 1) {
-                    require(indices[i] < indices[i + 1], "IndexedMerkleTree: indices must be in ascending order");
-                }
-                Node memory currentNode = self.nodes[indices[i]];
-                require(updatedNodes[i].key == currentNode.key && updatedNodes[i].value == currentNode.value, "IndexedMerkleTree: cannot update node with different key or value");
-                uint256 updatedLeaf = PoseidonT5.hash([updatedNodes[i].key, updatedNodes[i].nextIdx, updatedNodes[i].nextKey, updatedNodes[i].value]);
-                self.nodes[indices[i]] = updatedNodes[i];
-                self.leaves[indices[i]] = updatedLeaf;
+        for (uint256 i = 0; i < newNodes.length; i++) {
+            uint256 idx = self.numOfLeaves + i;
+            Node memory prevNode;
+            if (prevIdxs[i] < self.numOfLeaves) {
+                prevNode = self.nodes[prevIdxs[i]];
 
-                if (currentNode.key < prevKey) {
-                    prevKey = currentNode.key;
-                    prevIdx = indices[i];
-                }
-                
-                if (updatedNodes[i].key >= lastKey && lastKey != 0) {
-                    lastKey = updatedNodes[i].nextKey;
-                    lastIdx = updatedNodes[i].nextIdx;
-                }
+                require(prevNode.key < newNodes[i].key, "IndexedMerkleTree: new node key must be greater than previous node key");
+                require(prevNode.nextKey > newNodes[i].key || prevNode.nextKey == 0, "IndexedMerkleTree: new node next key must be greater than previous node next key or be 0");
+
+                prevNode.nextKey = newNodes[i].key;
+                prevNode.nextIdx = idx;
+
+                self.nodes[prevIdxs[i]] = prevNode;
+                self.leaves[prevIdxs[i]] = PoseidonT5.hash([prevNode.key, prevNode.nextIdx, prevNode.nextKey, prevNode.value]);
+            } else {
+                prevNode = newNodes[prevIdxs[i] - self.numOfLeaves];
+                require(prevNode.key < newNodes[i].key, "IndexedMerkleTree: new node key must be greater than previous pending node key");
+                require(prevNode.nextKey == newNodes[i].key && prevNode.nextIdx == idx, "IndexedMerkleTree: new node next key and idx must be the same as the previous node");
             }
 
-            if (i < newNodes.length) {
-                require(newNodes[i].nextIdx < newNumberOfLeaves, "IndexedMerkleTree: next idx cannot be greater than new number of leaves");
-                uint256 newIdx = self.numOfLeaves + i;
-                uint256 newLeaf = PoseidonT5.hash([newNodes[i].key, newNodes[i].nextIdx, newNodes[i].nextKey, newNodes[i].value]);
+            require(newNodes[i].nextIdx < newNumberOfLeaves, "IndexedMerkleTree: next idx cannot be greater than new number of leaves");
 
-                self.nodes[newIdx] = newNodes[i];
-                self.leaves[newIdx] = newLeaf;
-
-                if (newNodes[i].key < prevKey) {
-                    prevKey = newNodes[i].key;
-                    prevIdx = newIdx;
-                }
-                
-                if (newNodes[i].key >= lastKey && lastKey != 0) {
-                    lastKey = newNodes[i].nextKey;
-                    lastIdx = newNodes[i].nextIdx;
-                }
-            }
-        }
-
-        // Validate order of nextKeys and nextIdxs in updated and new nodes
-        Node memory node = self.nodes[prevIdx];
-        require(node.key == prevKey && node.key < node.nextKey, "IndexedMerkleTree: next key must be greater than previous key");
-        uint256 idx = node.nextIdx;
-
-        uint256 batchSize = updatedNodes.length + newNodes.length;
-        for (uint256 i = 1; i < batchSize; i++) {
-            node = self.nodes[idx];
-
-            if (i == batchSize - 1) {
-                require(node.key > prevKey && node.nextKey == lastKey && node.nextIdx == lastIdx, "IndexedMerkleTree: next key and idx must equal last key and idx");
-                if (lastKey == 0) {
-                    require(node.nextKey == 0 && node.nextIdx == 0, "IndexedMerkleTree: largest key must have next key and idx set to 0");
-                }
-                break;
-            }
-
-            require(node.key > prevKey && node.key < node.nextKey, "IndexedMerkleTree: next key must be greater than previous key");
-            prevKey = node.key;
-            idx = node.nextIdx;
+            self.nodes[idx] = newNodes[i];
+            self.leaves[idx] = PoseidonT5.hash([newNodes[i].key, newNodes[i].nextIdx, newNodes[i].nextKey, newNodes[i].value]);
         }
 
         self.numOfLeaves = newNumberOfLeaves;
