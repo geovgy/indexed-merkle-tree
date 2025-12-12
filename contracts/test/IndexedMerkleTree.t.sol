@@ -50,10 +50,11 @@ contract IndexedMerkleTreeTest is Test {
     function test_insertBatch() public {
         tree.init(depth);
 
-        uint256[] memory indices = new uint256[](1);
+        uint256[] memory indices = new uint256[](4);
         indices[0] = 0;
-        Node[] memory updatedNodes = new Node[](1);
-        updatedNodes[0] = Node({key: 0, nextIdx: 1, nextKey: 1, value: 0});
+        indices[1] = 1;
+        indices[2] = 4;
+        indices[3] = 2;
         Node[] memory newNodes = new Node[](4);
         newNodes[0] = Node({key: 1, nextIdx: 2, nextKey: 2, value: 1});
         newNodes[1] = Node({key: 2, nextIdx: 4, nextKey: 6, value: 2});
@@ -62,19 +63,17 @@ contract IndexedMerkleTreeTest is Test {
 
         tree.insertBatch(
             indices,
-            updatedNodes,
             newNodes
         );
 
         assertEq(tree.root, 20360384854684935537784946534938679782308351276277208865396381850156490043915);
 
         // Test a second batch
-        uint256[] memory indices2 = new uint256[](2);
+        uint256[] memory indices2 = new uint256[](4);
         indices2[0] = 2;
-        indices2[1] = 4;
-        Node[] memory updatedNodes2 = new Node[](2);
-        updatedNodes2[0] = Node({key: 2, nextIdx: 5, nextKey: 3, value: 2});
-        updatedNodes2[1] = Node({key: 6, nextIdx: 8, nextKey: 7, value: 10});
+        indices2[1] = 5;
+        indices2[2] = 6;
+        indices2[3] = 4;
         Node[] memory newNodes2 = new Node[](4);
         newNodes2[0] = Node({key: 3, nextIdx: 6, nextKey: 4, value: 3});
         newNodes2[1] = Node({key: 4, nextIdx: 7, nextKey: 5, value: 4});
@@ -83,7 +82,6 @@ contract IndexedMerkleTreeTest is Test {
 
         tree.insertBatch(
             indices2,
-            updatedNodes2,
             newNodes2
         );
 
