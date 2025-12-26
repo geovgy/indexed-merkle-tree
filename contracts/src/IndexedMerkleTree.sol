@@ -25,6 +25,12 @@ library IndexedMerkleTreeLib {
 
     uint256 constant private SNARK_SCALAR_FIELD = 21888242871839275222246405745257275088548364400416034343698204186575808495617;
 
+    /**
+     * @notice Initialize the indexed merkle tree
+     * @dev This function initializes the tree with the given depth. It must be called before inserting any nodes.
+     * @param self The indexed merkle tree
+     * @param depth The depth of the tree
+     */
     function init(IndexedMerkleTree storage self, uint256 depth) public {
         require(depth > 0, "IndexedMerkleTree: depth must be greater than 0");
         require(depth <= 254, "IndexedMerkleTree: depth must be less than or equal to 254");
@@ -39,6 +45,98 @@ library IndexedMerkleTreeLib {
         self.numOfLeaves = 1;
         self.depth = depth;
         self.root = ZERO_LEAF;
+    }
+
+    /**
+     * @notice Insert a new node into the tree
+     * @dev This function loops through the tree to find and update the previous node.
+     * @param self The indexed merkle tree
+     * @param key The key of the new node
+     * @param value The value of the new node
+     */
+    function insert(IndexedMerkleTree storage self, uint256 key, uint256 value) public {
+        require(self.root != 0, "IndexedMerkleTree: tree must be initialized");
+        require(key <= SNARK_SCALAR_FIELD, "IndexedMerkleTree: key cannot be greater than SNARK_SCALAR_FIELD");
+        require(value <= SNARK_SCALAR_FIELD, "IndexedMerkleTree: value cannot be greater than SNARK_SCALAR_FIELD");
+
+        uint256 prevKey = 0;
+        uint256 prevIdx = 0;
+        for (uint256 i = 1; i < self.numOfLeaves; i++) {
+            if (self.nodes[i].key < key && self.nodes[i].key > prevKey) {
+                prevKey = self.nodes[i].key;
+                prevIdx = i;
+                if (self.nodes[i].key + 1 == key) break;
+            }
+        }
+
+        uint256 nextIdx = self.nodes[prevIdx].nextIdx;
+        uint256 nextKey = self.nodes[prevIdx].nextKey;
+        
+        self.nodes[self.numOfLeaves] = Node({
+            key: key,
+            nextIdx: nextIdx,
+            nextKey: nextKey,
+            value: value
+        });
+
+        Node memory prevNode = self.nodes[prevIdx];
+        
+        prevNode.nextKey = key;
+        prevNode.nextIdx = self.numOfLeaves;
+        self.nodes[prevIdx] = prevNode;
+
+        uint256 prevLeaf = PoseidonT5.hash([prevNode.key, prevNode.nextIdx, prevNode.nextKey, prevNode.value]);
+        uint256 newLeaf = PoseidonT5.hash([key, nextIdx, nextKey, value]);
+        
+        self.leaves[prevIdx] = prevLeaf;
+        self.leaves[self.numOfLeaves] = newLeaf;
+        
+        self.numOfLeaves++;
+
+        self.root = calculateRoot(self);
+    }
+
+    /**
+     * @notice Insert a new node into the tree at a specific index
+     * @dev This function requires the index of the previous node to be provided. It is a more efficient version of `insert` when the previous node is known.
+     * @param self The indexed merkle tree
+     * @param prevIdx The index of the previous node to insert the new node after
+     * @param key The key of the new node
+     * @param value The value of the new node
+     */
+    function insertAt(IndexedMerkleTree storage self, uint256 prevIdx, uint256 key, uint256 value) public {
+        require(self.root != 0, "IndexedMerkleTree: tree must be initialized");
+        require(key <= SNARK_SCALAR_FIELD, "IndexedMerkleTree: key cannot be greater than SNARK_SCALAR_FIELD");
+        require(value <= SNARK_SCALAR_FIELD, "IndexedMerkleTree: value cannot be greater than SNARK_SCALAR_FIELD");
+
+        Node memory prevNode = self.nodes[prevIdx];
+        require(prevIdx < self.numOfLeaves, "IndexedMerkleTree: previous index must be less than the number of leaves");
+        require(prevNode.key < key, "IndexedMerkleTree: new node key must be greater than previous node key");
+        require(prevNode.nextKey > key || prevNode.nextKey == 0, "IndexedMerkleTree: new node next key must be greater than previous node next key or be 0");
+
+        uint256 nextIdx = prevNode.nextIdx;
+        uint256 nextKey = prevNode.nextKey;
+        
+        self.nodes[self.numOfLeaves] = Node({
+            key: key,
+            nextIdx: nextIdx,
+            nextKey: nextKey,
+            value: value
+        });
+        
+        prevNode.nextKey = key;
+        prevNode.nextIdx = self.numOfLeaves;
+        self.nodes[prevIdx] = prevNode;
+
+        uint256 prevLeaf = PoseidonT5.hash([prevNode.key, prevNode.nextIdx, prevNode.nextKey, prevNode.value]);
+        uint256 newLeaf = PoseidonT5.hash([key, nextIdx, nextKey, value]);
+        
+        self.leaves[prevIdx] = prevLeaf;
+        self.leaves[self.numOfLeaves] = newLeaf;
+        
+        self.numOfLeaves++;
+
+        self.root = calculateRoot(self);
     }
 
     /**
@@ -91,47 +189,13 @@ library IndexedMerkleTreeLib {
         self.root = calculateRoot(self);
     }
 
-    function insert(IndexedMerkleTree storage self, uint256 key, uint256 value) public {
-        require(self.root != 0, "IndexedMerkleTree: tree must be initialized");
-        require(key <= SNARK_SCALAR_FIELD, "IndexedMerkleTree: key cannot be greater than SNARK_SCALAR_FIELD");
-        require(value <= SNARK_SCALAR_FIELD, "IndexedMerkleTree: value cannot be greater than SNARK_SCALAR_FIELD");
-
-        uint256 prevKey = 0;
-        uint256 prevIdx = 0;
-        for (uint256 i = 1; i < self.numOfLeaves; i++) {
-            if (self.nodes[i].key < key && self.nodes[i].key > prevKey) {
-                prevKey = self.nodes[i].key;
-                prevIdx = i;
-                if (self.nodes[i].key + 1 == key) break;
-            }
-        }
-
-        uint256 nextIdx = self.nodes[prevIdx].nextIdx;
-        uint256 nextKey = self.nodes[prevIdx].nextKey;
-        
-        self.nodes[self.numOfLeaves] = Node({
-            key: key,
-            nextIdx: nextIdx,
-            nextKey: nextKey,
-            value: value
-        });
-        
-        self.nodes[prevIdx].nextKey = key;
-        self.nodes[prevIdx].nextIdx = self.numOfLeaves;
-
-        Node memory prevNode = self.nodes[prevIdx];
-
-        uint256 prevLeaf = PoseidonT5.hash([prevNode.key, prevNode.nextIdx, prevNode.nextKey, prevNode.value]);
-        uint256 newLeaf = PoseidonT5.hash([key, nextIdx, nextKey, value]);
-        
-        self.leaves[prevIdx] = prevLeaf;
-        self.leaves[self.numOfLeaves] = newLeaf;
-        
-        self.numOfLeaves++;
-
-        self.root = calculateRoot(self);
-    }
-
+    /**
+     * @notice Calculate the root of the tree
+     * @dev This function calculates the root of the tree by padding the leaves and building the tree from bottom up.
+     * It is a helper function for `insert`, `insertAt` and `insertBatch`.
+     * @param self The indexed merkle tree
+     * @return The root of the tree
+     */
     function calculateRoot(IndexedMerkleTree storage self) public view returns (uint256) {
         UD60x18 numberOfLeavesUD60x18 = ud(self.numOfLeaves * 1e18);
         uint256 ceilLog2 = numberOfLeavesUD60x18.log2().ceil().unwrap();

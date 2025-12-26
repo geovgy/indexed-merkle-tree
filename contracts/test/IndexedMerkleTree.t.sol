@@ -47,6 +47,38 @@ contract IndexedMerkleTreeTest is Test {
         );
     }
 
+    function test_insertAt() public {
+        tree.init(depth);
+
+        tree.insertAt(0, 1, 1);
+        assertEq(
+            tree.root, 
+            3358742217282686339971543825983684697129123898497160683024532050074432897246,
+            "Invalid root after inserting 1, 1"
+        );
+
+        tree.insertAt(1, 2, 2);
+        assertEq(
+            tree.root,
+            13334063658811196589046618147808085794349663728030588018101259058215191250359,
+            "Invalid root after inserting 2, 2"
+        );
+
+        tree.insertAt(2, 10, 20);
+        assertEq(
+            tree.root,
+            19928673215413014298979343016333490279477704763646829418221033082874321637015,
+            "Invalid root after inserting 10, 20"
+        );
+
+        tree.insertAt(2, 6, 10);
+        assertEq(
+            tree.root,
+            20360384854684935537784946534938679782308351276277208865396381850156490043915,
+            "Invalid root after inserting 6, 10"
+        );
+    }
+
     function test_insertBatch() public {
         tree.init(depth);
 
