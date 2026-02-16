@@ -1,0 +1,17 @@
+{
+  "lib/forge-std": {
+    "rev": "7117c90c8cf6c68e5acce4f09a6b24715cea4de6"
+  },
+  "lib/poseidon-solidity": {
+    "rev": "8205c97ec4a35a9adb854b70b2c9ba92668d1304"
+  },
+  "lib/poseidon2-evm": {
+    "rev": "6644369"
+  },
+  "lib/prb-math": {
+    "branch": {
+      "name": "release-v4",
+      "rev": "280fc5f77e1b21b9c54013aac51966be33f4a410"
+    }
+  }
+}

@@ -9,3 +9,6 @@
 	url = https://github.com/PaulRBerg/prb-math
 [submodule "lib/prb-math"]
 	branch = release-v4
+[submodule "contracts/lib/poseidon2-evm"]
+	path = contracts/lib/poseidon2-evm
+	url = https://github.com/geovgy/poseidon2-evm
