@@ -1,4 +1,13 @@
 {
+  "contracts/lib/forge-std": {
+    "rev": "7117c90c8cf6c68e5acce4f09a6b24715cea4de6"
+  },
+  "contracts/lib/poseidon2-evm": {
+    "rev": "66443690cec3efb014566851dc80523cb31f7128"
+  },
+  "contracts/lib/prb-math": {
+    "rev": "280fc5f77e1b21b9c54013aac51966be33f4a410"
+  },
   "lib/forge-std": {
     "rev": "7117c90c8cf6c68e5acce4f09a6b24715cea4de6"
   },

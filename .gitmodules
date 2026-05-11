@@ -1,9 +1,6 @@
 [submodule "contracts/lib/forge-std"]
 	path = contracts/lib/forge-std
 	url = https://github.com/foundry-rs/forge-std
-[submodule "contracts/lib/poseidon-solidity"]
-	path = contracts/lib/poseidon-solidity
-	url = https://github.com/chancehudson/poseidon-solidity
 [submodule "contracts/lib/prb-math"]
 	path = contracts/lib/prb-math
 	url = https://github.com/PaulRBerg/prb-math
@@ -12,3 +9,6 @@
 [submodule "contracts/lib/poseidon2-evm"]
 	path = contracts/lib/poseidon2-evm
 	url = https://github.com/geovgy/poseidon2-evm
+[submodule "contracts/lib/poseidon-solidity"]
+	path = contracts/lib/poseidon-solidity
+	url = https://github.com/geovgy/poseidon-solidity
