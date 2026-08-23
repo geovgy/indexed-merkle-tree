@@ -6,13 +6,13 @@ pub struct IndexedMerkleTree {
 }
 
 pub struct IMTProof<let MAX_DEPTH: u32> {
-    leafIdx: u32,
-    leafKey: Field,
-    leafNextIdx: u32,
-    leafNextKey: Field,
-    leafValue: Field,
-    root: Field,
-    siblings: [Field; MAX_DEPTH],
+    pub leafIdx: u32,
+    pub leafKey: Field,
+    pub leafNextIdx: u32,
+    pub leafNextKey: Field,
+    pub leafValue: Field,
+    pub root: Field,
+    pub siblings: [Field; MAX_DEPTH],
 }
 
 pub impl<let MAX_DEPTH: u32> IMTProof<MAX_DEPTH> {
@@ -24,8 +24,18 @@ pub impl<let MAX_DEPTH: u32> IMTProof<MAX_DEPTH> {
         Self { leafIdx: 0, leafKey: 0, leafNextIdx: 0, leafNextKey: 0, leafValue: 0, root: 0, siblings: [0; MAX_DEPTH] }
     }
 
-    pub fn to_leaf_hash(self, hasher: fn ([Field; 4]) -> Field) -> Field {
-        hasher([self.leafKey, self.leafNextIdx as Field, self.leafNextKey, self.leafValue])
+    pub fn to_leaf_hash(self, leaf_hasher: fn ([Field; 4]) -> Field) -> Field {
+        leaf_hasher([self.leafKey, self.leafNextIdx as Field, self.leafNextKey, self.leafValue])
+    }
+
+    pub fn verify(self, hasher: fn ([Field; 2]) -> Field, leaf_hasher: fn ([Field; 4]) -> Field) {
+        let tree = IndexedMerkleTree::new(hasher, leaf_hasher);
+        tree.verify_proof(self.leafIdx, self.leafKey, self.leafNextIdx, self.leafNextKey, self.leafValue, self.root, self.siblings);
+    }
+
+    pub fn verify_exclusion(self, hasher: fn ([Field; 2]) -> Field, leaf_hasher: fn ([Field; 4]) -> Field, excluded_key: Field) {
+        let tree = IndexedMerkleTree::new(hasher, leaf_hasher);
+        tree.verify_exclusion_proof(self.leafIdx, self.leafKey, self.leafNextIdx, self.leafNextKey, self.leafValue, self.root, self.siblings, excluded_key);
     }
 }
 
@@ -220,6 +230,17 @@ fn test_verifyProof() {
 }
 
 #[test]
+fn test_imtProof_verify() {
+    // Values from javascript test case
+    let proof = IMTProof::new(2, 20, 1, 30, 234, 6668943297883148265098278873555187520846124753710152977795611422562477639299, [
+        20759673891506207694606256884301953054087839119850062912178024809139786256525,
+        13570217411213457836903525328870830571019970122567943123711413970257955169666,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+    ]);
+    proof.verify(poseidon::poseidon::bn254::hash_2, poseidon::poseidon::bn254::hash_4);
+}
+
+#[test]
 fn test_verifyExclusionProof() {
     // Values from javascript test case
     let tree = IndexedMerkleTree::new(poseidon::poseidon::bn254::hash_2, poseidon::poseidon::bn254::hash_4);
@@ -233,6 +254,17 @@ fn test_verifyExclusionProof() {
         ],
         13
     );
+}
+
+#[test]
+fn test_imtProof_verifyExclusion() {
+    // Values from javascript test case
+    let proof = IMTProof::new(3, 10, 2, 20, 345, 6668943297883148265098278873555187520846124753710152977795611422562477639299, [
+        11135396582441045199900643499438439681601330703827922539252138484042051185631,
+        13570217411213457836903525328870830571019970122567943123711413970257955169666,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+    ]);
+    proof.verify_exclusion(poseidon::poseidon::bn254::hash_2, poseidon::poseidon::bn254::hash_4, 13);
 }
 
 #[test]
