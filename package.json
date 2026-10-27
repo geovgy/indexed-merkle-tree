@@ -1,6 +1,6 @@
 {
   "name": "indexed-merkle-tree",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "author": "geovgy",
   "license": "MIT",
   "description": "Indexed Merkle Tree implementation in TypeScript and Noir",
